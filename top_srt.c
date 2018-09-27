@@ -37,10 +37,10 @@ print_graph(struct node **l, int n)
 
     for (i = 0; i < n; i++) {
         if (l[i]->data) {
-            fprintf(stderr, "%s, ", l[i]->data);
+            fprintf(stderr, "%s (%p), ", l[i]->data, l[i]);
             fprintf(stderr, "%d\n", l[i]->num_deps);
             for (j = 0; j < l[i]->num_deps; j++) {
-                fprintf(stderr, "%s ", l[i]->deps[j]->data);
+                fprintf(stderr, "%s (%p) ", l[i]->deps[j]->data, l[i]->deps[j]);
             }
             fprintf(stderr, "\n");
         } else {
@@ -241,31 +241,34 @@ sort(struct node **l, int n)
 
     fprintf(stderr, "Entering sort!\n");
 
-    /*
-    if (l->v) {
-        return;
-    } else {
-        l->v = 1;
-    }
-    */
-
-    fprintf(stderr, "After visit check!\n");
-        
     for (i = 0; i < n; i++) {
+        if (l[i]->v) {
+            continue;
+        } else {
+            fprintf(stderr, "Marking!\n");
+            l[i]->v = 1;
+        }
+        sort(l[i]->deps, l[i]->num_deps);
+        /*
         for (j = 0; j < l[i]->num_deps; j++) {
-            if (!l[i]->v) {
-                l[i]->v = 1;
-                sort(&l[i]->deps[j], l[i]->deps[j]->num_deps);
-            }
+            sort(&l[i]->deps[j], l[i]->deps[j]->num_deps);
         }
 
+        */
         if (l[i]->data) {
             fprintf(stderr, "%s\n", l[i]->data);
         } else {
             fprintf(stderr, "(null)\n");
         }
-
     }
+
+    /*
+    if ((*l)->data) {
+        fprintf(stderr, "%s\n", (*l)->data);
+    } else {
+        fprintf(stderr, "(null)\n");
+    }
+    */
 }
 
 /*
