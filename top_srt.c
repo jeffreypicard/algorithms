@@ -31,13 +31,18 @@ struct node {
  * FIXME: Move to separate file
  */
 void
-print_graph(struct node *l, int n)
+print_graph(struct node **l, int n)
 {
-    int i;
+    int i, j;
 
     for (i = 0; i < n; i++) {
-        if (l[i].data) {
-            fprintf(stderr, "%s\n", l[i].data);
+        if (l[i]->data) {
+            fprintf(stderr, "%s, ", l[i]->data);
+            fprintf(stderr, "%d\n", l[i]->num_deps);
+            for (j = 0; j < l[i]->num_deps; j++) {
+                fprintf(stderr, "%s ", l[i]->deps[j]->data);
+            }
+            fprintf(stderr, "\n");
         } else {
             fprintf(stderr, "(null)\n");
         }
@@ -49,13 +54,13 @@ print_graph(struct node *l, int n)
  *
  * FIXME: slow
  */
-struct node *
-find_node(struct node *l, int n, char *needle)
+struct node **
+find_node(struct node **l, int n, char *needle)
 {
     int i;
 
     for (i = 0; i < n; i++) {
-        if (strcmp(l[i].data, needle) == 0) return &l[i];
+        if (strcmp(l[i]->data, needle) == 0) return &l[i];
     }
 
     return 0;
@@ -126,10 +131,11 @@ readline(FILE *f)
  * 
  * FIXME
  */
-struct node *
-parse(FILE *f)
+//struct node *
+void
+parse(FILE *f, struct node ***out_l, int *out_n)
 {
-    struct node *l;
+    struct node **l;
     /* FIXME can be done with one buf */
     char *buf;
     char buf2[256];
@@ -146,6 +152,10 @@ parse(FILE *f)
 
     l = calloc(num_nodes, sizeof *l);
     if (!l) goto fail; 
+    for (i = 0; i < num_nodes; i++) {
+        l[i] = calloc(1, sizeof **l);
+        if (!l[i]) goto fail; 
+    }
 
     buf = readline(f);
     if (!buf) goto fail; 
@@ -161,9 +171,9 @@ parse(FILE *f)
 
         o = sscanf(buf + j, "%s ", buf2);
         j += o + 1; /* +1 for the space */
-        l[i].data = calloc(o, sizeof(char));
-        if (!l[i].data) goto fail;
-        memcpy(l[i].data, buf2, o);
+        l[i]->data = calloc(o, sizeof(char));
+        if (!l[i]->data) goto fail;
+        memcpy(l[i]->data, buf2, o);
         i++;
     }
 
@@ -178,8 +188,10 @@ parse(FILE *f)
 
         j = sscanf(buf, "%d ", &num_links);
 
-        l[i].deps = calloc(num_links, sizeof *l[i].deps);
-        if (!l[i].deps) goto fail;
+        l[i]->deps = calloc(num_links, sizeof *l[i]->deps);
+        if (!l[i]->deps) goto fail;
+
+        l[i]->num_deps = num_links;
 
         /*
          * Fill in the adj matrix with pointers to the associated nodes
@@ -192,7 +204,7 @@ parse(FILE *f)
             o = sscanf(buf + j, "%s ", buf2);
             j += o + 1; /* +1 for the space */
             fprintf(stderr, "calling find_node!\n");
-            l[i].deps[k] = find_node(l, n, buf2);
+            l[i]->deps[k] = *find_node(l, n, buf2);
             k++;
             /*
             l[i].deps[k] = calloc(1, sizeof *l[i].deps[k]);
@@ -206,8 +218,12 @@ parse(FILE *f)
         free(buf);
     }
 
+    *out_l = l;
+    *out_n = num_nodes;
+
     fail:
-    return (void *) 0;
+    /* return (void *) 0; */
+    return;
 }
 
 /*
@@ -219,21 +235,37 @@ parse(FILE *f)
  * Returns failure or success.
  */
 void
-sort(struct node *l)
+sort(struct node **l, int n)
 {
-    int i = 0;
+    int i, j;
 
+    fprintf(stderr, "Entering sort!\n");
+
+    /*
     if (l->v) {
         return;
     } else {
         l->v = 1;
     }
-        
-    for (i = 0; i < l->num_deps; i++) {
-        sort(l->deps[i]);
-    }
+    */
 
-    printf("%s\n", l->data);
+    fprintf(stderr, "After visit check!\n");
+        
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < l[i]->num_deps; j++) {
+            if (!l[i]->v) {
+                l[i]->v = 1;
+                sort(&l[i]->deps[j], l[i]->deps[j]->num_deps);
+            }
+        }
+
+        if (l[i]->data) {
+            fprintf(stderr, "%s\n", l[i]->data);
+        } else {
+            fprintf(stderr, "(null)\n");
+        }
+
+    }
 }
 
 /*
@@ -243,7 +275,8 @@ sort(struct node *l)
 int
 main(int argc, char **argv)
 {
-    struct node *n;
+    struct node **l;
+    int n;
     char *buf;
     FILE *f;
 
@@ -256,12 +289,19 @@ main(int argc, char **argv)
     fprintf(stderr, "After open!\n");
     /* buf = readline(f); */
     fprintf(stderr, "parsing!\n");
-    parse(f);
+    parse(f, &l, &n);
     fprintf(stderr, "After readline!\n");
+    print_graph(l, n);
+    fprintf(stderr, "After print graph!\n");
+    sort(l, n);
+    fprintf(stderr, "After sort!\n");
+    /*
     buf = 0;
     if (!buf) goto fail;
     printf("%s\n", buf);
+    */
 
+    return 0;
     fail:
     return -1;
 }
