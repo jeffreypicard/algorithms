@@ -130,6 +130,7 @@ readline(FILE *f)
  * Parse input file describing the graph
  * 
  * FIXME: The *** seems weird, maybe rethink this
+ * Also have an error return value
  */
 void
 parse(FILE *f, struct node ***out_l, int *out_n)
@@ -146,7 +147,7 @@ parse(FILE *f, struct node ***out_l, int *out_n)
     if (!buf) goto fail; 
 
     sscanf(buf, "%d", &num_nodes);
-    fprintf(stderr, "num_nodes: %d\n", num_nodes);
+    /* fprintf(stderr, "num_nodes: %d\n", num_nodes); */
     free(buf);
 
     l = calloc(num_nodes, sizeof *l);
@@ -157,6 +158,7 @@ parse(FILE *f, struct node ***out_l, int *out_n)
     }
 
     buf = readline(f);
+    /* fprintf(stderr, "buf: %s\n", buf); */
     if (!buf) goto fail; 
 
     /* FIXME: assume stuff about readline */
@@ -173,10 +175,11 @@ parse(FILE *f, struct node ***out_l, int *out_n)
         l[i]->data = calloc(o + 1, sizeof(char));
         if (!l[i]->data) goto fail;
         memcpy(l[i]->data, buf2, o);
+
         i++;
     }
 
-    print_graph(l, num_nodes);
+    /* print_graph(l, num_nodes); */
 
     i = 0;
     while ((buf = readline(f))) {
@@ -187,10 +190,12 @@ parse(FILE *f, struct node ***out_l, int *out_n)
 
         j = sscanf(buf, "%d ", &num_links);
 
-        l[i]->deps = calloc(num_links, sizeof *l[i]->deps);
+        l[i]->deps = calloc(num_links, sizeof(struct node *));
         if (!l[i]->deps) goto fail;
 
         l[i]->num_deps = num_links;
+
+        /* print_graph(l, num_nodes); */
 
         /*
          * Fill in the adj matrix with pointers to the associated nodes
@@ -202,7 +207,14 @@ parse(FILE *f, struct node ***out_l, int *out_n)
 
             o = sscanf(buf + j, "%s ", buf2);
             j += o + 1; /* +1 for the space */
-            l[i]->deps[k] = *find_node(l, n, buf2);
+
+            struct node **dep_node = find_node(l, num_nodes, buf2);
+            /* l[i]->deps[k] = *find_node(l, n, buf2); */
+            if (!dep_node) {
+                /* fprintf(stderr, "No node found!\n"); */
+                goto fail;
+            }
+            l[i]->deps[k] = *dep_node;
             k++;
         }
 
@@ -265,7 +277,7 @@ main(int argc, char **argv)
     f = fopen(argv[1], "r");
 
     parse(f, &l, &n);
-    print_graph(l, n);
+    /* print_graph(l, n); */
     sort(l, n);
 
     return 0;
