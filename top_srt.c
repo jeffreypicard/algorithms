@@ -129,9 +129,8 @@ readline(FILE *f)
  *
  * Parse input file describing the graph
  * 
- * FIXME
+ * FIXME: The *** seems weird, maybe rethink this
  */
-//struct node *
 void
 parse(FILE *f, struct node ***out_l, int *out_n)
 {
@@ -171,7 +170,7 @@ parse(FILE *f, struct node ***out_l, int *out_n)
 
         o = sscanf(buf + j, "%s ", buf2);
         j += o + 1; /* +1 for the space */
-        l[i]->data = calloc(o, sizeof(char));
+        l[i]->data = calloc(o + 1, sizeof(char));
         if (!l[i]->data) goto fail;
         memcpy(l[i]->data, buf2, o);
         i++;
@@ -203,18 +202,11 @@ parse(FILE *f, struct node ***out_l, int *out_n)
 
             o = sscanf(buf + j, "%s ", buf2);
             j += o + 1; /* +1 for the space */
-            fprintf(stderr, "calling find_node!\n");
             l[i]->deps[k] = *find_node(l, n, buf2);
             k++;
-            /*
-            l[i].deps[k] = calloc(1, sizeof *l[i].deps[k]);
-            if (!l[i].deps[k]) goto fail;
-            */
-            /* sscanf(buf, "%s ", buf2); */
         }
 
         i++;
-        fprintf(stderr, "%s", buf);
         free(buf);
     }
 
@@ -239,36 +231,19 @@ sort(struct node **l, int n)
 {
     int i, j;
 
-    fprintf(stderr, "Entering sort!\n");
-
     for (i = 0; i < n; i++) {
         if (l[i]->v) {
             continue;
         } else {
-            fprintf(stderr, "Marking!\n");
             l[i]->v = 1;
         }
         sort(l[i]->deps, l[i]->num_deps);
-        /*
-        for (j = 0; j < l[i]->num_deps; j++) {
-            sort(&l[i]->deps[j], l[i]->deps[j]->num_deps);
-        }
-
-        */
         if (l[i]->data) {
             fprintf(stderr, "%s\n", l[i]->data);
         } else {
             fprintf(stderr, "(null)\n");
         }
     }
-
-    /*
-    if ((*l)->data) {
-        fprintf(stderr, "%s\n", (*l)->data);
-    } else {
-        fprintf(stderr, "(null)\n");
-    }
-    */
 }
 
 /*
@@ -287,22 +262,11 @@ main(int argc, char **argv)
     if (argc < 2) goto fail;
 
     /* use first arg as param w/ out checking FIXME */
-    fprintf(stderr, "Before open!\n");
     f = fopen(argv[1], "r");
-    fprintf(stderr, "After open!\n");
-    /* buf = readline(f); */
-    fprintf(stderr, "parsing!\n");
+
     parse(f, &l, &n);
-    fprintf(stderr, "After readline!\n");
     print_graph(l, n);
-    fprintf(stderr, "After print graph!\n");
     sort(l, n);
-    fprintf(stderr, "After sort!\n");
-    /*
-    buf = 0;
-    if (!buf) goto fail;
-    printf("%s\n", buf);
-    */
 
     return 0;
     fail:
