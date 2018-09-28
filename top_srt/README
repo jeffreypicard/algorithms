@@ -1,0 +1,8 @@
+Topological sort of a graph in C.
+
+N.B. the file format is as follows:
+num_nodes
+LIST OF NODES YAY
+num_deps_0 LIST OF DEPS
+...
+num_deps_n LIST OF DEPS TWO
